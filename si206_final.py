@@ -39,7 +39,12 @@ def get_spotify_data(list):
         'client_secret': CLIENT_SECRET,
     })
 
-    # convert the response to JSON
+    if auth_response.status_code != 200:
+        print(f"Failed to authenticate with Spotify API. Status code: {auth_response.status_code}")
+        print(f"Response: {auth_response.text}")
+        return spotify_data
+
+    # convert the json response
     auth_response_data = auth_response.json()
     # save the access token
     access_token = auth_response_data['access_token']
@@ -51,6 +56,13 @@ def get_spotify_data(list):
         # actual GET request with proper header
         r = requests.get(BASE_URL + 'artists/' + track_id, headers=headers)
         #print(r)
+
+        if r.status_code != 200:
+            print(f"Failed to fetch data for track ID {track_id}. Status code: {r.status_code}")
+            print(f"Response: {r.text}")
+            continue  # Skip this iteration and continue with the next track ID
+
+
         d = r.json()
         spotify_data.append(d)
         #print(d)
@@ -68,22 +80,28 @@ def get_youtube_data(list):
     return youtube_data
 
 # access itune data with artist name
-def get_itune_data(list):
+def get_itune_data(artist_list):
     itune_data = []
-    for i in range(0,len(list)):
-        url = f'https://itunes.apple.com/search?term={list[i]}&entity=musicTrack&limit=1'
-        print("Requesting URL:", url) 
+    for artist in artist_list:
+        url = f'https://itunes.apple.com/search?term={artist}&entity=musicTrack&limit=1'
         response = requests.get(url)
         if response.status_code == 200:
             try:
-                d = response.json()
-                itune_data.append(d)
+                data = response.json()
+                results = data.get('results', [])
+                if results:
+                    # Extract the required fields
+                    artist_name = results[0].get('artistName', 'N/A')
+                    genre = results[0].get('primaryGenreName', 'N/A')
+                    track_time = results[0].get('trackTimeMillis', 'N/A')
+                    itune_data.append((artist_name, genre, track_time))
             except ValueError as e:
-                print(f"Error decoding JSON for {list[i]}: {e}")
+                print(f"Error decoding JSON for {artist}: {e}")
         else:
-            print(f"Failed to fetch data for {list[i]}. Status code: {response.status_code}")
-    #print(itune_data)
+            print(f"Failed to fetch data for {artist}. Status code: {response.status_code}")
+
     return itune_data
+
 
 
 
@@ -124,26 +142,57 @@ def add_name_data(artist_list, youtube_id_list, spotify_id_list, itune_id_list, 
 
 
 #add Itune data
-def add_itune_data(data, cur, conn):
-    cur.execute("CREATE TABLE IF NOT EXISTS itune( id INTEGER PRIMARY KEY, artistName TEXT, track_name TEXT, primary_genre_name TEXT)")
+def add_itune_data(itune_data, cur, conn):
+    # Create the iTunes table if it doesn't exist
+    cur.execute('''CREATE TABLE IF NOT EXISTS itune 
+                   (id INTEGER PRIMARY KEY, artistName TEXT, primary_genre_name TEXT, trackTimeMillis INTEGER)''')
+
     try:
-        cur.execute('SELECT id FROM itune WHERE ID = (SELECT MAX(ID) FROM itune)')
-        start = cur.fetchone()
-        start = start[0]
-    except:
+        # Retrieve the highest ID currently in the itune table
+        cur.execute('SELECT MAX(id) FROM itune')
+        start = cur.fetchone()[0]
+        start = start + 1 if start is not None else 0
+    except Exception as e:
+        print(f"Error fetching max ID from itune table: {e}")
         start = 0
-    id = 0
-    for item in data[start:start+25]:
-        item_id = id + start
-        artistName = item.get('artistName','N/A' )
-        track_name = item.get('trackName', 'N/A')
-        primary_genre_name = item.get('primaryGenreName', 'N/A')
-        cur.execute('''INSERT INTO itune
-                              (id, artistName, track_name, primary_genre_name) 
-                              VALUES (?, ?, ?, ?)''', 
-                           (item_id, artistName, track_name, primary_genre_name))
-        id += 1
+
+    # Insert data into the itune table
+    for i, item in enumerate(itune_data[start:start+25], start=start):
+        artistName, genre, trackTimeMillis = item
+        cur.execute('''INSERT INTO itune (id, artistName, primary_genre_name, trackTimeMillis) 
+                       VALUES (?, ?, ?, ?)''', (i, artistName, genre, trackTimeMillis))
+
     conn.commit()
+
+
+def itune_rank_genres_by_popularity(cur):
+    cur.execute("SELECT primary_genre_name, COUNT(*) as track_count FROM itune GROUP BY primary_genre_name ORDER BY track_count DESC")
+    return cur.fetchall()
+
+def itune_rank_ave_track_time_by_genre(cur):
+    cur.execute("SELECT primary_genre_name, AVG(trackTimeMillis) as avg_track_time FROM itune GROUP BY primary_genre_name ORDER BY avg_track_time DESC")
+    return cur.fetchall()
+
+def itune_visualize_genre_ranking(genre_data):
+    genres, track_counts = zip(*genre_data)
+
+    plt.figure(figsize=(12, 6))
+    plt.bar(genres, track_counts, color='green')
+    plt.xlabel('Genre')
+    plt.ylabel('Number of Tracks')
+    plt.title('Most Popular Genres on iTunes')
+    plt.xticks(rotation=45)
+    plt.show()
+
+def itune_visualize_ave_track_time_by_genre(track_data):
+    genres, avg_track_times = zip(*track_data)
+    plt.figure(figsize=(12, 6))
+    plt.bar(genres, avg_track_times, color='blue')
+    plt.xlabel('Genre')
+    plt.ylabel('Average Track Time (milliseconds)')
+    plt.title('Average Track Time by Genre on iTunes')
+    plt.xticks(rotation=45)
+    plt.show()
 
 
 #add spotify data
@@ -356,7 +405,7 @@ def total_rank_chart(data):
 
 def write_csv_aveview(data, filename):
     #print(data)
-    with open(filename, mode = "w") as f:
+    with open(filename, mode = "w", encoding="utf-8") as f:
         writer = csv.writer(f)
         header =  ['rank', 'artist', 'avg views']
         writer.writerow(header)
@@ -366,7 +415,7 @@ def write_csv_aveview(data, filename):
 
 def write_csv_genre(data, filename):
     #print(data)
-    with open(filename, mode = "w") as f:
+    with open(filename, mode = "w", encoding="utf-8") as f:
         writer = csv.writer(f)
         header =  ['genre', 'number of followers']
         writer.writerow(header)
@@ -376,7 +425,7 @@ def write_csv_genre(data, filename):
 
 def write_csv_total(data, filename):
     #print(data)
-    with open(filename, mode = "w") as f:
+    with open(filename, mode = "w", encoding="utf-8") as f:
         writer = csv.writer(f)
         header =  ['artist', 'total score']
         writer.writerow(header)
@@ -423,13 +472,21 @@ def main():
     list4 = spotify_followers_rank(cur,conn)
     list5 = spotify_popularity_rank(cur,conn)
     list6 = spotify_genres_followers_rank(cur,conn)
-
+    
     youtube_total_views_rank_chart(list1)
     youtube_subscribers_rank_chart(list2)
     youtube_ave_views_rank_chart(list3)
     spotify_followers_rank_chart(list4)
     spotify_popularity_rank_chart(list5)
     spotify_genres_followers_rank_chart(list6)
+
+    #for itunes
+    genre_ranking = itune_rank_genres_by_popularity(cur)
+    track_ranking = itune_rank_ave_track_time_by_genre(cur)
+    itune_visualize_genre_ranking(genre_ranking)
+    itune_visualize_ave_track_time_by_genre(track_ranking)
+    
+
 
     total_score_rank = count_total_scores(list1,list2,list3,list4,list5)
     total_rank_chart(total_score_rank)
