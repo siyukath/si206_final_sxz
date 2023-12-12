@@ -173,26 +173,7 @@ def itune_rank_ave_track_time_by_genre(cur):
     cur.execute("SELECT primary_genre_name, AVG(trackTimeMillis) as avg_track_time FROM itune GROUP BY primary_genre_name ORDER BY avg_track_time DESC")
     return cur.fetchall()
 
-def itune_visualize_genre_ranking(genre_data):
-    genres, track_counts = zip(*genre_data)
 
-    plt.figure(figsize=(12, 6))
-    plt.bar(genres, track_counts, color='green')
-    plt.xlabel('Genre')
-    plt.ylabel('Number of Tracks')
-    plt.title('Most Popular Genres on iTunes')
-    plt.xticks(rotation=45)
-    plt.show()
-
-def itune_visualize_ave_track_time_by_genre(track_data):
-    genres, avg_track_times = zip(*track_data)
-    plt.figure(figsize=(12, 6))
-    plt.bar(genres, avg_track_times, color='blue')
-    plt.xlabel('Genre')
-    plt.ylabel('Average Track Time (milliseconds)')
-    plt.title('Average Track Time by Genre on iTunes')
-    plt.xticks(rotation=45)
-    plt.show()
 
 
 #add spotify data
@@ -264,8 +245,6 @@ def youtube_ave_views_rank(cur, conn):
         ave_view_rank.append((item[0],item[1],ave_view))
         # print(ave_view_rank)
     youtube_ave_view_rank = sorted(ave_view_rank, key=lambda x:x[2])
-    # print(youtube_ave_view_rank)
-    # print(len(youtube_ave_view_rank))
     return youtube_ave_view_rank
 
 def spotify_followers_rank(cur, conn):
@@ -295,69 +274,96 @@ def spotify_genres_followers_rank(cur, conn):
 
 #graph charts
 def youtube_total_views_rank_chart(data):
-    name_list = [item[1] for item in data]
-    view_list = [item[2] for item in data]
-    plt.bar(name_list, view_list)
+    name_list = [item[1] for item in data[:20]]
+    view_list = [item[2] for item in data[:20]]
+    plt.figure(figsize=(12, 6))
+    plt.bar(name_list, view_list, color='orange')
     plt.xlabel('name')
     plt.ylabel('total views')
-    plt.title('US top artitst total views ranking on Youtube')
+    plt.title('US artitst total views ranking on Youtube top 20 ')
     plt.xticks(name_list, rotation=90)
     plt.tick_params(axis='x', labelsize=6)
     plt.show()
 
 def youtube_subscribers_rank_chart(data):
-    name_list = [item[1] for item in data]
-    subscriber_list = [item[2] for item in data]
-    plt.bar(name_list, subscriber_list)
+    name_list = [item[1] for item in data[:20]]
+    subscriber_list = [item[2] for item in data[:20]]
+    plt.figure(figsize=(12, 6))
+    plt.bar(name_list, subscriber_list, color='orange')
     plt.xlabel('name')
     plt.ylabel('number of subscribers')
-    plt.title('US top artitst subscribercount ranking on Youtube')
+    plt.title('US top 20 artitst subscriber count ranking on Youtube')
     plt.xticks(name_list, rotation=90)
     plt.tick_params(axis='x', labelsize=6)
     plt.show()
 
 def youtube_ave_views_rank_chart(data):
-    name_list = [item[1] for item in data]
-    ave_view_list = [item[2] for item in data]
-    plt.bar(name_list, ave_view_list)
+    name_list = [item[1] for item in data][:20]
+    ave_view_list = [item[2] for item in data[:20]]
+    plt.figure(figsize=(12, 6))
+    plt.bar(name_list, ave_view_list, color='orange')
     plt.xlabel('name')
     plt.ylabel('average views')
-    plt.title('US top artitst video average views ranking on Youtube')
+    plt.title('US artitst video average views ranking on Youtube top 20')
     plt.xticks(name_list, rotation=90)
     plt.tick_params(axis='x', labelsize=6)
     plt.show()
 
 def spotify_followers_rank_chart(data):
-    name_list = [item[1] for item in data]
-    follower_list = [item[2] for item in data]
-    plt.bar(name_list, follower_list)
+    name_list = [item[1] for item in data[:20]]
+    follower_list = [item[2] for item in data[:20]]
+    plt.figure(figsize=(12, 6))
+    plt.bar(name_list, follower_list, color='blue')
     plt.xlabel('name')
     plt.ylabel('number of followers')
-    plt.title('US top artitst followers ranking on Spotify')
+    plt.title('US top 20 artitst followers ranking on Spotify')
     plt.xticks(name_list, rotation=90)
     plt.tick_params(axis='x', labelsize=6)
     plt.show()
 
 def spotify_popularity_rank_chart(data):
-    name_list = [item[1] for item in data]
-    popularity_list = [item[2] for item in data]
-    plt.bar(name_list, popularity_list)
+    name_list = [item[1] for item in data[:20]]
+    popularity_list = [item[2] for item in data[:20]]
+    plt.figure(figsize=(12, 6))
+    plt.bar(name_list, popularity_list, color='blue')
     plt.xlabel('name')
     plt.ylabel('popularity')
-    plt.title('US top artitst popularity ranking on Spotify')
+    plt.title('US artitst popularity ranking on Spotify top 20')
     plt.xticks(name_list, rotation=90)
     plt.tick_params(axis='x', labelsize=6)
     plt.show()
 
 def spotify_genres_followers_rank_chart(data):
-    name_list = [item[0] for item in data]
-    genre_follower_list = [item[1] for item in data]
-    plt.bar(name_list, genre_follower_list)
+    name_list = [item[0] for item in data[:20]]
+    genre_follower_list = [item[1] for item in data[:20]]
+    plt.figure(figsize=(12, 6))
+    plt.bar(name_list, genre_follower_list, color='blue')
     plt.xlabel('genres')
     plt.ylabel('number of followers')
-    plt.title('US top music genres follower numbers ranking on Spotify')
+    plt.title('US top 20 music genres follower numbers ranking on Spotify')
     plt.xticks(name_list, rotation=90)
     plt.tick_params(axis='x', labelsize=6)
+    plt.show()
+
+def itune_visualize_genre_ranking(genre_data):
+    genres, track_counts = zip(*genre_data)
+
+    plt.figure(figsize=(12, 6))
+    plt.bar(genres, track_counts, color='green')
+    plt.xlabel('Genre')
+    plt.ylabel('Number of Tracks')
+    plt.title('Most Popular Genres on iTunes')
+    plt.xticks(rotation=45)
+    plt.show()
+
+def itune_visualize_ave_track_time_by_genre(track_data):
+    genres, avg_track_times = zip(*track_data)
+    plt.figure(figsize=(12, 6))
+    plt.bar(genres, avg_track_times, color='green')
+    plt.xlabel('Genre')
+    plt.ylabel('Average Track Time (milliseconds)')
+    plt.title('Average Track Time by Genre on iTunes')
+    plt.xticks(rotation=45)
     plt.show()
 
 def count_total_scores(data1, data2, data3, data4, data5):
@@ -387,18 +393,17 @@ def count_total_scores(data1, data2, data3, data4, data5):
         total_score_list.append((artist,total_score))
         total_score_dict[artist] = score_list
     total_score_list = sorted(total_score_list, key=lambda x:x[1])
-    # print(total_score_list)
-    # print(total_score_dict)
     return total_score_list
 
 
 def total_rank_chart(data):
-    name_list = [item[0] for item in data]
-    score_list = [item[1] for item in data]
-    plt.bar(name_list, score_list)
+    name_list = [item[0] for item in data[:20]]
+    score_list = [item[1] for item in data[:20]]
+    plt.figure(figsize=(12, 6))
+    plt.bar(name_list, score_list,color='red')
     plt.xlabel('name')
     plt.ylabel('total popularity score')
-    plt.title('US top artists total popularity ranking on Spotify and Youtube')
+    plt.title('US artists total popularity ranking top 20')
     plt.xticks(name_list, rotation=90)
     plt.tick_params(axis='x', labelsize=7)
     plt.show()
@@ -414,6 +419,16 @@ def write_csv_aveview(data, filename):
         return writer
 
 def write_csv_genre(data, filename):
+    #print(data)
+    with open(filename, mode = "w", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        header =  ['genre', 'number of followers']
+        writer.writerow(header)
+        for tup in data:
+            writer.writerow(tup)
+        return writer
+
+def write_csv_song(data, filename):
     #print(data)
     with open(filename, mode = "w", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -472,10 +487,10 @@ def main():
     list4 = spotify_followers_rank(cur,conn)
     list5 = spotify_popularity_rank(cur,conn)
     list6 = spotify_genres_followers_rank(cur,conn)
+   
     
     youtube_total_views_rank_chart(list1)
     youtube_subscribers_rank_chart(list2)
-    youtube_ave_views_rank_chart(list3)
     spotify_followers_rank_chart(list4)
     spotify_popularity_rank_chart(list5)
     spotify_genres_followers_rank_chart(list6)
@@ -487,7 +502,6 @@ def main():
     itune_visualize_ave_track_time_by_genre(track_ranking)
     
 
-
     total_score_rank = count_total_scores(list1,list2,list3,list4,list5)
     total_rank_chart(total_score_rank)
 
@@ -495,12 +509,5 @@ def main():
     write_csv_genre(list6, "spotify_genres.csv")
     write_csv_total(total_score_rank, "total_scores.csv")
 
-
-    # dir_path = os.path.dirname(os.path.realpath(__file__))
-    # filename1 = dir_path + '/' + "spotify.json"
-    # filename2 = dir_path + '/' + 'youtube.json'
-    # write_spotify_data(filename1,data1)
-    # write_youtube_data(filename2,data2)
-    
 main()
     
